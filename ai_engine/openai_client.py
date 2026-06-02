@@ -31,7 +31,7 @@ async def generate_post_image(prompt: str) -> Path | None:
             model="gpt-image-1",
             prompt=prompt,
             size="1024x1024",
-            quality="standard",
+            quality="medium",
             n=1,
         )
         image_b64 = response.data[0].b64_json
