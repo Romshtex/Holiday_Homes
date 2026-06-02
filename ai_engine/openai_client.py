@@ -1,4 +1,5 @@
 import base64
+import logging
 from pathlib import Path
 
 from openai import AsyncOpenAI
@@ -27,9 +28,15 @@ async def generate_post_text(topic: str) -> str:
 
 async def generate_post_image(prompt: str) -> Path | None:
     try:
+        full_prompt = (
+            f"{prompt}. "
+            "Фотореалистичное изображение премиальной недвижимости в Аланье, Турция. "
+            "Никакого текста, надписей, букв или watermark на изображении. "
+            "Только архитектура, море, природа."
+        )
         response = await client.images.generate(
             model="gpt-image-1",
-            prompt=prompt,
+            prompt=full_prompt,
             size="1024x1024",
             quality="medium",
             n=1,
@@ -40,6 +47,5 @@ async def generate_post_image(prompt: str) -> Path | None:
         path.write_bytes(image_bytes)
         return path
     except Exception as e:
-        import logging
         logging.error(f"Ошибка генерации изображения: {e}")
         return None
