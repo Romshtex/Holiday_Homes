@@ -1,24 +1,52 @@
-import logging
-from pathlib import Path
+from aiogram import Router, F
+from aiogram.filters import Command
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
-from aiogram import Bot
-from aiogram.types import FSInputFile, URLInputFile
+from ai_engine.openai_client import generate_post_text, generate_post_image
+from bot.sender import publish_post
+from parser.news_scraper import fetch_latest_news
 
-from config.settings import CHANNEL_ID
+router = Router()
 
 
-async def publish_post(bot: Bot, text: str, image: Path | str | None = None) -> None:
+def main_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📢 POST", callback_data="do_post")]
+    ])
+
+
+@router.message(Command("start"))
+async def cmd_start(message: Message) -> None:
+    await message.answer(
+        "👋 Я AI-агент Holiday Homes по недвижимости в Аланье.\n\nВыбери действие:",
+        reply_markup=main_menu()
+    )
+
+
+@router.message(Command("status"))
+async def cmd_status(message: Message) -> None:
+    await message.answer("✅ Агент активен и готов к публикациям.", reply_markup=main_menu())
+
+
+@router.message(Command("post"))
+async def cmd_post(message: Message) -> None:
+    await _do_publish(message.bot, message)
+
+
+@router.callback_query(F.data == "do_post")
+async def cb_post(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await _do_publish(callback.bot, callback.message)
+
+
+async def _do_publish(bot, message: Message) -> None:
+    await message.answer("⏳ Генерирую пост и изображение, подожди 20-30 секунд...")
     try:
-        if isinstance(image, Path) and image.exists():
-            # Локальный файл (gpt-image-1)
-            photo = FSInputFile(image)
-            await bot.send_photo(chat_id=CHANNEL_ID, photo=photo, caption=text)
-            image.unlink(missing_ok=True)  # удаляем временный файл
-        elif isinstance(image, str) and image.startswith("http"):
-            # URL (на случай будущих моделей)
-            await bot.send_photo(chat_id=CHANNEL_ID, photo=URLInputFile(image), caption=text)
-        else:
-            # Только текст если картинка не сгенерировалась
-            await bot.send_message(chat_id=CHANNEL_ID, text=text)
-    except Exception:
-        logging.exception("Ошибка при отправке поста")
+        news = await fetch_latest_news()
+        topic = news[0]["title"] if news else "Недвижимость в Аланье: актуальные тренды"
+        post_text = await generate_post_text(topic)
+        image_path = await generate_post_image(topic)
+        await publish_post(bot, post_text, image_path)
+        await message.answer("✅ Пост опубликован в канал!", reply_markup=main_menu())
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}", reply_markup=main_menu())
