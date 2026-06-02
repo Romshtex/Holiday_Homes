@@ -1,35 +1,19 @@
-import asyncio
+import logging
 from pathlib import Path
 
-from aiogram.types import FSInputFile, URLInputFile
+from aiogram import Bot
+from aiogram.types import FSInputFile
 
 from config.settings import CHANNEL_ID
 
 
-async def publish_post(bot, text: str, image_source: str | Path | None = None) -> None:
-    if image_source is None:
-        await bot.send_message(chat_id=CHANNEL_ID, text=text)
-        return
-
-    image_path = Path(image_source)
-    if await asyncio.to_thread(image_path.exists):
-        try:
-            await bot.send_photo(
-                chat_id=CHANNEL_ID,
-                photo=FSInputFile(image_path),
-                caption=text,
-            )
-        finally:
-            if image_path.name == "generated_image.png":
-                await asyncio.to_thread(image_path.unlink, True)
-        return
-
-    if isinstance(image_source, str) and image_source.startswith(("http://", "https://")):
-        await bot.send_photo(
-            chat_id=CHANNEL_ID,
-            photo=URLInputFile(image_source),
-            caption=text,
-        )
-        return
-
-    raise FileNotFoundError(f"Image file not found: {image_source}")
+async def publish_post(bot: Bot, text: str, image: Path | None = None) -> None:
+    try:
+        if isinstance(image, Path) and image.exists():
+            photo = FSInputFile(image)
+            await bot.send_photo(chat_id=CHANNEL_ID, photo=photo, caption=text)
+            image.unlink(missing_ok=True)
+        else:
+            await bot.send_message(chat_id=CHANNEL_ID, text=text)
+    except Exception:
+        logging.exception("Ошибка при отправке поста")
