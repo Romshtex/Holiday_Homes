@@ -26,10 +26,15 @@ async def cmd_post(message: Message) -> None:
         news = await fetch_latest_news()
         topic = news[0]["title"] if news else "Недвижимость в Аланье: актуальные тренды"
         post_text = await generate_post_text(topic)
-        image_url = await generate_post_image(
-            f"Современная недвижимость в Аланье, тема: {topic}"
-        )
-        await publish_post(message.bot, post_text, image_url)
+        image_path = None
+        try:
+            image_path = await generate_post_image(
+                f"Современная недвижимость в Аланье, тема: {topic}"
+            )
+        except Exception:
+            await message.answer("⚠️ Не удалось сгенерировать изображение, публикую только текст.")
+
+        await publish_post(message.bot, post_text, image_path)
         await message.answer("✅ Пост опубликован в канал!")
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
