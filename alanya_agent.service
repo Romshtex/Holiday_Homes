@@ -1,0 +1,28 @@
+[Unit]
+Description=Alanya AI Agent — Telegram Bot for Holiday Homes
+Documentation=https://github.com/Romshtex/Holiday_Homes
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Holiday_Homes
+EnvironmentFile=/home/ubuntu/Holiday_Homes/.env
+
+# Absolute path to the Python interpreter inside the virtual environment
+ExecStart=/home/ubuntu/Holiday_Homes/venv/bin/python main.py
+
+Restart=always
+RestartSec=10
+
+# Stdout/Stderr goes to journald — view with: journalctl -u alanya_agent -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=alanya_agent
+
+# Graceful shutdown timeout
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
