@@ -41,17 +41,3 @@ async def publish_post(bot, text: str, image_source: str | Path | None = None) -
         return
 
     raise FileNotFoundError(f"Image file not found: {image_source}")
-        finally:
-            if image_path.name == "generated_image.png":
-                await asyncio.to_thread(image_path.unlink, True)
-        return
-
-    if isinstance(image_source, str) and image_source.startswith(("http://", "https://")):
-        await bot.send_photo(
-            chat_id=CHANNEL_ID,
-            photo=URLInputFile(image_source),
-            caption=text,
-        )
-        return
-
-    raise FileNotFoundError(f"Image file not found: {image_source}")
