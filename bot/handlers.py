@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
 from ai_engine.openai_client import generate_post_text, generate_post_image
 from bot.sender import publish_post
@@ -9,10 +9,15 @@ from parser.news_scraper import fetch_latest_news
 router = Router()
 
 
-def main_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📢 POST", callback_data="do_post")]
-    ])
+def main_menu() -> ReplyKeyboardMarkup:
+    """Генерирует системную клавиатуру в нижней части экрана."""
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📢 POST")]
+        ],
+        resize_keyboard=True,
+        input_field_placeholder="Ожидаю команды..."
+    )
 
 
 @router.message(Command("start"))
@@ -33,10 +38,10 @@ async def cmd_post(message: Message) -> None:
     await _do_publish(message.bot, message)
 
 
-@router.callback_query(F.data == "do_post")
-async def cb_post(callback: CallbackQuery) -> None:
-    await callback.answer()
-    await _do_publish(callback.bot, callback.message)
+@router.message(F.text == "📢 POST")
+async def msg_post(message: Message) -> None:
+    # Перехват текстового сигнала от Reply-клавиатуры
+    await _do_publish(message.bot, message)
 
 
 async def _do_publish(bot, message: Message) -> None:
